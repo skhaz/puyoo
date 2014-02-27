@@ -31,8 +31,6 @@ block_draw(int type, int x, int y)
 		  { 0, 1, 0, 1 },
 		  { 0, 0, 1, 1 } };
 
-	if (!(type > BLOCK_EMPTY && type < NUM_BLOCK_TYPES))
-		printf("%d\n", type);
 	assert(type > BLOCK_EMPTY && type < NUM_BLOCK_TYPES);
 
 	glColor4fv(block_colors[type - 1]);
@@ -63,12 +61,6 @@ static inline void
 grid_set_block(struct grid *g, int r, int c, int type)
 {
 	g->blocks[r*GRID_COLS + c] = type;
-}
-
-static inline void
-grid_set_hanging(struct grid *g, int r, int c)
-{
-	g->blocks[r*GRID_COLS + c] |= BLOCK_HANGING;
 }
 
 static void
@@ -162,6 +154,8 @@ falling_block_update(struct falling_block *fb, const struct grid *g, unsigned dp
 	return is_active;
 }
 
+static void grid_solve_chains(struct grid *g);
+
 void
 grid_initialize(struct grid *g, int base_x, int base_y)
 {
@@ -179,10 +173,15 @@ static void
 grid_draw_blocks(const struct grid *g)
 {
 	const unsigned char *p;
-	int i, y;
+	int i, y, y_offset;
 
 	p = g->blocks;
 	y = g->base_y;
+
+	if (g->state == STATE_DROPPING_BLOCKS)
+		y_offset = g->state_tics*BLOCK_SIZE/DROPPING_BLOCK_TICS;
+	else
+		y_offset = 0;
 
 	for (i = 0; i < GRID_ROWS; i++) {
 		int j, x;
@@ -192,8 +191,12 @@ grid_draw_blocks(const struct grid *g)
 		for (j = 0; j < GRID_COLS; j++) {
 			unsigned char type = *p++;
 
-			if (type != BLOCK_EMPTY)
-				block_draw(type & ~BLOCK_FLAGS, x, y);
+			if (type != BLOCK_EMPTY) {
+				int block_y = y;
+				if (type & BLOCK_HANGING)
+					block_y = y - y_offset;
+				block_draw(type & ~BLOCK_FLAGS, x, block_y);
+			}
 
 			x += BLOCK_SIZE;
 		}
@@ -279,10 +282,10 @@ grid_find_chains(struct grid *g)
 				if (type != BLOCK_EMPTY) {
 					int chain_size = find_chain_size(g, visited, r, c, type);
 
-					printf("%d chain!\n", chain_size);
-
-					if (chain_size >= MIN_CHAIN_SIZE)
+					if (chain_size >= MIN_CHAIN_SIZE) {
+						printf("%d chain!\n", chain_size);
 						chain_clear(g, r, c, type);
+					}
 				}
 			}
 		}
@@ -320,7 +323,7 @@ mark_hanging_chain(struct grid *g, int r, int c)
 		int b = grid_get_block(g, r, c);
 
 		if (b != BLOCK_EMPTY && !(b & BLOCK_HANGING)) {
-			grid_set_hanging(g, r, c);
+			grid_set_block(g, r, c, b | BLOCK_HANGING);
 
 			mark_hanging_chain(g, r + 1, c);
 			mark_hanging_chain(g, r - 1, c);
@@ -343,8 +346,7 @@ grid_has_hanging_blocks(struct grid *g)
 
 		for (c = 0; c < GRID_COLS; c++) {
 			if (!visited[r*GRID_COLS + r] && grid_get_block_type(g, r, c) != BLOCK_EMPTY) {
-				int v = find_lowest_chain_block(g, visited, r, c);
-				if (v > 0) {
+				if (find_lowest_chain_block(g, visited, r, c) > 0) {
 					mark_hanging_chain(g, r, c);
 					rv = 1;
 				}
