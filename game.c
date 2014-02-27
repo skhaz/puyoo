@@ -29,7 +29,7 @@ void
 game_update(void)
 {
 	grid_update(&left_grid, dpad_state);
-	/* grid_update(&right_grid, 0); */ /* XXX: for now */
+	/* grid_update(&right_grid, 0); */
 }
 
 void
