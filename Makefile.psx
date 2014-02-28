@@ -1,0 +1,42 @@
+PSXSDK_ROOT = /opt/psxsdk
+
+CC = mipsel-unknown-elf-gcc
+LD = mipsel-unknown-elf-gcc
+
+MKISOFS = genisoimage
+
+CD_IMAGE_ROOT = cdroot
+LICENSE_FILE  = $(PSXSDK_ROOT)/share/licenses/infoeur.dat
+
+CFLAGS = -fsigned-char -msoft-float -mno-gpopt -fno-builtin -G0 -I$(PSXSDK_ROOT)/include
+LDFLAGS = -T $(PSXSDK_ROOT)/mipsel-unknown-elf/lib/ldscripts/playstation.x
+
+LIBS = 
+
+TARGET = demo
+
+CFILES = main-psx.c game.c grid.c gfx-psx.c
+
+OBJS = $(CFILES:.c=.o)
+
+all: cdimage
+
+$(TARGET): $(OBJS)
+	$(LD) $(OBJS) -o $@ $(LIBS) $(LDFLAGS)
+
+$(TARGET).exe: $(TARGET)
+	elf2exe $(TARGET) $(TARGET).exe
+
+cdimage: $(TARGET).exe
+	mkdir -p $(CD_IMAGE_ROOT)
+	cp $(TARGET).exe $(CD_IMAGE_ROOT)
+	systemcnf $(TARGET).exe > $(CD_IMAGE_ROOT)/system.cnf
+	$(MKISOFS) -o $(TARGET).hsf -V $(TARGET) -sysid PLAYSTATION $(CD_IMAGE_ROOT)
+	mkpsxiso $(TARGET).hsf $(TARGET).bin $(LICENSE_FILE)
+	rm -f $(TARGET).hsf
+
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+clean:
+	rm -rf *o $(TARGET) $(TARGET).exe $(CD_IMAGE_ROOT) $(TARGET).bin $(TARGET).cue
