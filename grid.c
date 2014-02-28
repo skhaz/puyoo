@@ -70,7 +70,10 @@ static void
 falling_block_draw(const struct falling_block *fb, int base_x, int base_y)
 {
 	block_draw(fb->blocks[0], base_x + fb->col*BLOCK_SIZE, base_y + fb->row*BLOCK_SIZE);
-	block_draw(fb->blocks[1], base_x + (fb->col + offsets[fb->rotation][1])*BLOCK_SIZE, base_y + (fb->row + offsets[fb->rotation][0])*BLOCK_SIZE);
+
+	block_draw(fb->blocks[1],
+		base_x + (fb->col + offsets[fb->rotation][1])*BLOCK_SIZE,
+		base_y + (fb->row + offsets[fb->rotation][0])*BLOCK_SIZE);
 }
 
 static int
@@ -83,8 +86,8 @@ static int
 falling_block_can_move(struct falling_block *fb, const struct grid *g, int dr, int dc)
 {
 	return
-	  grid_is_empty(g, fb->row + dr, fb->col + dc) &&
-	  grid_is_empty(g, fb->row + offsets[fb->rotation][0] + dr, fb->col + offsets[fb->rotation][1] + dc);
+		grid_is_empty(g, fb->row + dr, fb->col + dc) &&
+		grid_is_empty(g, fb->row + offsets[fb->rotation][0] + dr, fb->col + offsets[fb->rotation][1] + dc);
 }
 
 static int
@@ -117,12 +120,12 @@ falling_block_update(struct falling_block *fb, const struct grid *g, unsigned dp
 		}
 
 		if (dpad_state & DPAD_BUTTON) {
-			int next_rotation = fb->rotation + 1;
-			if (next_rotation == FALLING_BLOCK_NUM_ROTATIONS)
-				next_rotation = 0;
+			int rotation = fb->rotation + 1;
+			if (rotation == FALLING_BLOCK_NUM_ROTATIONS)
+				rotation = 0;
 
-			if (grid_is_empty(g, fb->row + offsets[next_rotation][0], fb->col + offsets[next_rotation][1])) {
-				fb->rotation = next_rotation;
+			if (grid_is_empty(g, fb->row + offsets[rotation][0], fb->col + offsets[rotation][1])) {
+				fb->rotation = rotation;
 				fb->input_poll_tics = FALLING_BLOCK_UPDATE_INTERVAL;
 			}
 		}
@@ -142,8 +145,6 @@ falling_block_update(struct falling_block *fb, const struct grid *g, unsigned dp
 
 	return is_active;
 }
-
-static void grid_solve_chains(struct grid *g);
 
 void
 grid_initialize(struct grid *g, int base_x, int base_y)
@@ -253,26 +254,28 @@ chain_clear(struct grid *g, int r, int c, int type)
 static void
 grid_find_chains(struct grid *g)
 {
-	int r;
+	int i;
 	static int visited[GRID_ROWS*GRID_COLS];
 
 	memset(visited, 0, sizeof(visited));
 
-	for (r = 0; r < GRID_ROWS; r++) {
-		int c;
+	for (i = 0; i < GRID_ROWS*GRID_COLS; i++) {
+		int type;
 
-		for (c = 0; c < GRID_COLS; c++) {
-			if (!visited[r*GRID_COLS + r]) {
-				int type = grid_get_block(g, r, c);
+		if (visited[i])
+			continue;
 
-				if (type != BLOCK_EMPTY) {
-					int chain_size = find_chain_size(g, visited, r, c, type);
+		type = g->blocks[i];
 
-					if (chain_size >= MIN_CHAIN_SIZE) {
-						printf("%d chain!\n", chain_size);
-						chain_clear(g, r, c, type);
-					}
-				}
+		if (type != BLOCK_EMPTY) {
+			const int r = i/GRID_COLS;
+			const int c = i%GRID_COLS;
+
+			int chain_size = find_chain_size(g, visited, r, c, type);
+
+			if (chain_size >= MIN_CHAIN_SIZE) {
+				printf("%d chain!\n", chain_size);
+				chain_clear(g, r, c, type);
 			}
 		}
 	}
@@ -311,20 +314,6 @@ grid_drop_hanging_blocks(struct grid *g)
 	}
 }
 
-static void
-grid_solve_chains(struct grid *g)
-{
-	grid_find_chains(g);
-
-	if (grid_has_hanging_blocks(g)) {
-		g->state = STATE_DROPPING_BLOCKS;
-		g->state_tics = 0;
-	} else {
-		g->state = STATE_PLAYER_CONTROL;
-		falling_block_initialize(&g->falling_block);
-	}
-}
-
 void
 grid_draw(const struct grid *g)
 {
@@ -341,6 +330,25 @@ grid_draw(const struct grid *g)
 	}
 }
 
+static void
+grid_on_drop(struct grid *g)
+{
+	if (grid_has_hanging_blocks(g)) {
+		g->state = STATE_DROPPING_BLOCKS;
+		g->state_tics = 0;
+	} else {
+		grid_find_chains(g);
+
+		if (grid_has_hanging_blocks(g)) {
+			g->state = STATE_DROPPING_BLOCKS;
+			g->state_tics = 0;
+		} else {
+			g->state = STATE_PLAYER_CONTROL;
+			falling_block_initialize(&g->falling_block);
+		}
+	}
+}
+
 void
 grid_update(struct grid *g, unsigned dpad_state)
 {
@@ -348,10 +356,15 @@ grid_update(struct grid *g, unsigned dpad_state)
 		case STATE_PLAYER_CONTROL:
 			if (!falling_block_update(&g->falling_block, g, dpad_state)) {
 				const struct falling_block *fb = &g->falling_block;
-				grid_set_block(g, fb->row, fb->col, fb->blocks[0]);
-				grid_set_block(g, fb->row + offsets[fb->rotation][0], fb->col + offsets[fb->rotation][1], fb->blocks[1]);
 
-				grid_solve_chains(g);
+				grid_set_block(g, fb->row, fb->col, fb->blocks[0]);
+
+				grid_set_block(g,
+					fb->row + offsets[fb->rotation][0],
+					fb->col + offsets[fb->rotation][1],
+					fb->blocks[1]);
+
+				grid_on_drop(g);
 			}
 			break;
 
@@ -359,7 +372,7 @@ grid_update(struct grid *g, unsigned dpad_state)
 			if (++g->state_tics == DROPPING_BLOCK_TICS) {
 				grid_drop_hanging_blocks(g);
 
-				grid_solve_chains(g);
+				grid_on_drop(g);
 			}
 			break;
 
