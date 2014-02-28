@@ -12,6 +12,7 @@ enum {
 	MIN_CHAIN_SIZE = 3,
 
 	DROPPING_BLOCK_TICS = 10,
+	EXPLODING_BLOCK_TICS = 5,
 
 	FALLING_BLOCK_UPDATE_INTERVAL = 3,
 	FALLING_BLOCK_DROP_INTERVAL = 30,
@@ -21,12 +22,11 @@ enum {
 static void
 block_draw(int type, int x, int y)
 {
-	GLfloat block_colors[NUM_BLOCK_TYPES - 1][4] =
+	static const GLfloat block_colors[NUM_BLOCK_TYPES - 1][4] =
 		{ { 1, 0, 0, 1 },
 		  { 0, 1, 0, 1 },
-		  { 0, 0, 1, 1 } };
-
-	assert(type > BLOCK_EMPTY && type < NUM_BLOCK_TYPES);
+		  { 0, 0, 1, 1 },
+		  { 1, 1, 1, 1 }, };
 
 	glColor4fv(block_colors[type - 1]);
 
@@ -55,8 +55,8 @@ grid_set_block(struct grid *g, int r, int c, int type)
 static void
 falling_block_initialize(struct falling_block *fb)
 {
-	fb->blocks[0] = rand()%(NUM_BLOCK_TYPES - 1) + 1;
-	fb->blocks[1] = rand()%(NUM_BLOCK_TYPES - 1) + 1;
+	fb->blocks[0] = rand()%(NUM_BLOCK_TYPES - 2) + 1;
+	fb->blocks[1] = rand()%(NUM_BLOCK_TYPES - 2) + 1;
 
 	fb->row = GRID_ROWS - 1;
 	fb->col = GRID_COLS/2 - 1;
@@ -243,25 +243,36 @@ find_chain_size(const struct grid *g, int *visited, int r, int c, int type)
 }
 
 static void
-chain_clear(struct grid *g, int r, int c, int type)
+chain_explode(struct grid *g, int r, int c, int type)
 {
 	if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS && grid_get_block(g, r, c) == type) {
-		grid_set_block(g, r, c, BLOCK_EMPTY);
+		grid_set_block(g, r, c, BLOCK_EXPLODING);
 
-		chain_clear(g, r - 1, c, type);
-		chain_clear(g, r + 1, c, type);
-		chain_clear(g, r, c - 1, type);
-		chain_clear(g, r, c + 1, type);
+		chain_explode(g, r - 1, c, type);
+		chain_explode(g, r + 1, c, type);
+		chain_explode(g, r, c - 1, type);
+		chain_explode(g, r, c + 1, type);
 	}
 }
 
 static void
+grid_clear_exploding_blocks(struct grid *g)
+{
+	unsigned char *p;
+
+	for (p = g->blocks; p != &g->blocks[GRID_ROWS*GRID_COLS]; p++) if (*p == BLOCK_EXPLODING)
+			*p = BLOCK_EMPTY;
+}
+
+static int
 grid_find_chains(struct grid *g)
 {
-	int i;
+	int i, found;
 	static int visited[GRID_ROWS*GRID_COLS];
 
 	memset(visited, 0, sizeof(visited));
+
+	found = 0;
 
 	for (i = 0; i < GRID_ROWS*GRID_COLS; i++) {
 		int type;
@@ -279,10 +290,13 @@ grid_find_chains(struct grid *g)
 
 			if (chain_size >= MIN_CHAIN_SIZE) {
 				printf("%d chain!\n", chain_size);
-				chain_clear(g, r, c, type);
+				chain_explode(g, r, c, type);
+				found = 1;
 			}
 		}
 	}
+
+	return found;
 }
 
 static int
@@ -340,16 +354,12 @@ grid_on_drop(struct grid *g)
 	if (grid_has_hanging_blocks(g)) {
 		g->state = STATE_DROPPING_BLOCKS;
 		g->state_tics = 0;
+	} else if (grid_find_chains(g)) {
+		g->state = STATE_EXPLODING_BLOCKS;
+		g->state_tics = 0;
 	} else {
-		grid_find_chains(g);
-
-		if (grid_has_hanging_blocks(g)) {
-			g->state = STATE_DROPPING_BLOCKS;
-			g->state_tics = 0;
-		} else {
-			g->state = STATE_PLAYER_CONTROL;
-			falling_block_initialize(&g->falling_block);
-		}
+		g->state = STATE_PLAYER_CONTROL;
+		falling_block_initialize(&g->falling_block);
 	}
 }
 
@@ -372,10 +382,16 @@ grid_update(struct grid *g, unsigned dpad_state)
 			}
 			break;
 
+		case STATE_EXPLODING_BLOCKS:
+			if (++g->state_tics == EXPLODING_BLOCK_TICS) {
+				grid_clear_exploding_blocks(g);
+				grid_on_drop(g);
+			}
+			break;
+
 		case STATE_DROPPING_BLOCKS:
 			if (++g->state_tics == DROPPING_BLOCK_TICS) {
 				grid_drop_hanging_blocks(g);
-
 				grid_on_drop(g);
 			}
 			break;

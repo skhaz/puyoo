@@ -12,6 +12,7 @@ enum block_type {
 	BLOCK_RED,
 	BLOCK_GREEN,
 	BLOCK_BLUE,
+	BLOCK_EXPLODING,
 	NUM_BLOCK_TYPES,
 };
 
@@ -24,6 +25,7 @@ struct falling_block {
 
 enum grid_state {
 	STATE_PLAYER_CONTROL,
+	STATE_EXPLODING_BLOCKS,
 	STATE_DROPPING_BLOCKS,
 };
 
