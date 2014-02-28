@@ -65,11 +65,11 @@ falling_block_initialize(struct falling_block *fb)
 static void
 falling_block_draw(const struct falling_block *fb, int base_x, int base_y)
 {
-	block_draw(fb->blocks[0], base_x + fb->col*BLOCK_SIZE, base_y + fb->row*BLOCK_SIZE);
+	block_draw(fb->blocks[0], base_x + fb->col*BLOCK_SIZE, base_y + (GRID_ROWS - 1)*BLOCK_SIZE - fb->row*BLOCK_SIZE);
 
 	block_draw(fb->blocks[1],
 		base_x + (fb->col + offsets[fb->rotation][1])*BLOCK_SIZE,
-		base_y + (fb->row + offsets[fb->rotation][0])*BLOCK_SIZE);
+		base_y + (GRID_ROWS - 1)*BLOCK_SIZE - (fb->row + offsets[fb->rotation][0])*BLOCK_SIZE);
 }
 
 static int
@@ -153,6 +153,8 @@ grid_initialize(struct grid *g, int base_x, int base_y)
 	g->base_y = base_y;
 
 	memset(g->blocks, 0, sizeof(g->blocks));
+g->blocks[0] = BLOCK_RED;
+g->blocks[GRID_ROWS*GRID_COLS - 1] = BLOCK_BLUE;
 
 	falling_block_initialize(&g->falling_block);
 
@@ -177,15 +179,15 @@ grid_draw_blocks(const struct grid *g)
 
 		hanging = 0;
 
-		y = g->base_y;
+		y = g->base_y + (GRID_ROWS - 1)*BLOCK_SIZE;
 
 		for (p = &g->blocks[c]; p < &g->blocks[GRID_ROWS*GRID_COLS]; p += GRID_COLS) {
 			if (*p == BLOCK_EMPTY)
 				hanging = 1;
 			else
-				block_draw(*p, x, hanging ? y - y_offset : y);
+				block_draw(*p, x, hanging ? y + y_offset : y);
 
-			y += BLOCK_SIZE;
+			y -= BLOCK_SIZE;
 		}
 
 		x += BLOCK_SIZE;

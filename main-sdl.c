@@ -51,7 +51,7 @@ initialize_opengl_state(void)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT, -1, 1);
+	glOrtho(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, -1, 1);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
