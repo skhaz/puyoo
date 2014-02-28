@@ -1,4 +1,7 @@
+#include <stdio.h>
 #include <psx.h>
+
+#include "common.h"
 
 unsigned dpad_state;
 
@@ -8,6 +11,21 @@ static void
 vblank_handler(void)
 {
 	vblank = 1;
+}
+
+static void
+dpad_state_update(void)
+{
+	unsigned short pad;
+
+	PSX_ReadPad(&pad, NULL);
+
+	dpad_state = 0;
+	if (pad & PAD_UP) dpad_state |= DPAD_UP;
+	if (pad & PAD_DOWN) dpad_state |= DPAD_DOWN;
+	if (pad & PAD_LEFT) dpad_state |= DPAD_LEFT;
+	if (pad & PAD_RIGHT) dpad_state |= DPAD_RIGHT;
+	if (pad & PAD_CROSS) dpad_state |= DPAD_BUTTON;
 }
 
 void
@@ -45,6 +63,7 @@ main_loop(void)
 		GsSetDispEnvSimple(0, cur_buf ? 0 : 256);
 		GsSetDrawEnvSimple(0, cur_buf ? 256 : 0, 320, 240);
 
+		dpad_state_update();
 		game_update();
 
 		GsSortCls(0, 0, 0);
