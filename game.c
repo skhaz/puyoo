@@ -22,14 +22,14 @@ void
 game_redraw(void)
 {
 	grid_draw(&left_grid);
-	/* grid_draw(&right_grid); */
+	grid_draw(&right_grid);
 }
 
 void
 game_update(void)
 {
 	grid_update(&left_grid, dpad_state);
-	/* grid_update(&right_grid, 0); */
+	grid_update(&right_grid, 0);
 }
 
 void

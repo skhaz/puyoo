@@ -6,7 +6,7 @@ OBJS = $(CFILES:.c=.o)
 CFLAGS = `pkg-config --cflags sdl gl glu` -Wall -g -O2
 LIBS = `pkg-config --libs sdl gl glu`
 
-CFILES = main.c game.c grid.c
+CFILES = main-sdl.c game.c grid.c gfx-sdl.c
 
 TARGET = demo
 

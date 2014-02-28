@@ -3,9 +3,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include <GL/gl.h>
-
 #include "common.h"
+#include "gfx.h"
 #include "grid.h"
 
 enum {
@@ -22,20 +21,18 @@ enum {
 static void
 block_draw(int type, int x, int y)
 {
-	static const GLfloat block_colors[NUM_BLOCK_TYPES - 1][4] =
-		{ { 1, 0, 0, 1 },
-		  { 0, 1, 0, 1 },
-		  { 0, 0, 1, 1 },
-		  { 1, 1, 1, 1 }, };
+	static const struct rgb {
+		int r, g, b;
+	} block_colors[NUM_BLOCK_TYPES - 1] = {
+		{ 255, 0, 0 },
+		{ 0, 255, 0 },
+		{ 0, 0, 255 },
+		{ 255, 255, 255 },
+	};
 
-	glColor4fv(block_colors[type - 1]);
+	const struct rgb *color = &block_colors[type - 1];
 
-	glBegin(GL_QUADS);
-	glVertex2f(x, y);
-	glVertex2f(x + BLOCK_SIZE, y);
-	glVertex2f(x + BLOCK_SIZE, y + BLOCK_SIZE);
-	glVertex2f(x, y + BLOCK_SIZE);
-	glEnd();
+	draw_rectangle(x, y, BLOCK_SIZE, BLOCK_SIZE, color->r, color->g, color->b);
 }
 
 static const int offsets[FALLING_BLOCK_NUM_ROTATIONS][2] = { { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 } };
@@ -201,27 +198,19 @@ grid_draw_background(const struct grid *g)
 {
 	int i, x, y;
 
-	glColor4f(.25, .25, .25, 1.);
-
-	glBegin(GL_LINES);
-
 	y = g->base_y;
 
 	for (i = 0; i <= GRID_ROWS; i++) {
-		glVertex2f(g->base_x, y);
-		glVertex2f(g->base_x + GRID_COLS*BLOCK_SIZE, y);
+		draw_line(g->base_x, y, g->base_x + GRID_COLS*BLOCK_SIZE, y, 100, 100, 100);
 		y += BLOCK_SIZE;
 	}
 
 	x = g->base_x;
 
 	for (i = 0; i <= GRID_COLS; i++) {
-		glVertex2f(x, g->base_y);
-		glVertex2f(x, g->base_y + GRID_ROWS*BLOCK_SIZE);
+		draw_line(x, g->base_y, x, g->base_y + GRID_ROWS*BLOCK_SIZE, 100, 100, 100);
 		x += BLOCK_SIZE;
 	}
-
-	glEnd();
 }
 
 static int
