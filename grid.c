@@ -116,6 +116,8 @@ falling_block_update(struct falling_block *fb, const struct grid *g, unsigned dp
 			if (falling_block_can_move(fb, g, -1, 0)) {
 				--fb->row;
 				fb->input_poll_tics = FALLING_BLOCK_UPDATE_INTERVAL;
+			} else {
+				is_active = 0;
 			}
 		}
 
@@ -131,15 +133,17 @@ falling_block_update(struct falling_block *fb, const struct grid *g, unsigned dp
 		}
 	}
 
-	if (fb->drop_tics > 0) {
-		--fb->drop_tics;
-	} else {
-		if (falling_block_can_move(fb, g, -1, 0)) {
-			--fb->row;
-			fb->drop_tics = FALLING_BLOCK_DROP_INTERVAL;
+	if (is_active) {
+		if (fb->drop_tics > 0) {
+			--fb->drop_tics;
 		} else {
-			/* can't drop */
-			is_active = 0;
+			if (falling_block_can_move(fb, g, -1, 0)) {
+				--fb->row;
+				fb->drop_tics = FALLING_BLOCK_DROP_INTERVAL;
+			} else {
+				/* can't drop */
+				is_active = 0;
+			}
 		}
 	}
 
