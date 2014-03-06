@@ -2,15 +2,15 @@
 #define GAME_H_
 
 void
-game_initialize(void);
+game_initialize();
 
 void
-game_redraw(void);
+game_redraw();
 
 void
-game_update(void);
+game_update();
 
 void
-game_release(void);
+game_release();
 
 #endif /* GAME_H_ */
