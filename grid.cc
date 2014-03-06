@@ -29,7 +29,7 @@ block_draw(int type, int x, int y)
 		{ 255, 255, 255 },
 	};
 
-	const struct rgb *color = &block_colors[type - 1];
+	const rgb *color = &block_colors[type - 1];
 
 	draw_rectangle(x, y, BLOCK_SIZE, BLOCK_SIZE, color->r, color->g, color->b);
 }
@@ -342,7 +342,7 @@ grid::update(unsigned dpad_state)
 	switch (state_) {
 		case STATE_PLAYER_CONTROL:
 			if (!falling_block_.update(this, dpad_state)) {
-				const struct falling_block *fb = &falling_block_;
+				const falling_block *fb = &falling_block_;
 
 				set_block(fb->row_, fb->col_, fb->blocks_[0]);
 
