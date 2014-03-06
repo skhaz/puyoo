@@ -12,7 +12,7 @@ enum {
 	FRAME_INTERVAL = 1000/FRAMES_PER_SECOND
 };
 
-static int running = 0;
+static bool running = false;
 
 unsigned dpad_state;
 
@@ -37,13 +37,13 @@ initialize_sdl(void)
 }
 
 static void
-release_sdl(void)
+release_sdl()
 {
 	SDL_Quit();
 }
 
 static void
-initialize_opengl_state(void)
+initialize_opengl_state()
 {
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -136,7 +136,7 @@ handle_events(void)
 	while (SDL_PollEvent(&event)) {
 		switch (event.type) {
 			case SDL_QUIT:
-				running = 0;
+				running = false;
 				break;
 
 			case SDL_KEYDOWN:
@@ -159,25 +159,20 @@ redraw(void)
 }
 
 static void
-main_loop(void)
+main_loop()
 {
-	Uint32 next_frame;
+	running = true;
 
-	running = 1;
-
-	next_frame = SDL_GetTicks() + FRAME_INTERVAL;
+	Uint32 next_frame = SDL_GetTicks() + FRAME_INTERVAL;
 
 	while (running) {
 		handle_events();
 		game_update();
 		redraw();
 
-		{
 		Uint32 now = SDL_GetTicks();
-
 		if (now < next_frame)
 			SDL_Delay(next_frame - now);
-		}
 
 		next_frame += FRAME_INTERVAL;
 	}
