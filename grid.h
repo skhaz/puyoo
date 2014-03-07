@@ -19,15 +19,13 @@ enum block_type {
 class grid;
 
 class falling_block {
-	friend class grid;
-
 public:
 	void initialize();
 
 	void draw(int base_x, int base_y) const;
 	bool update(const grid *g, unsigned dpad_state);
-
 	bool can_move(const grid *g, int dr, int dc) const;
+	void copy_to_grid(grid *g);
 
 private:
 	int blocks_[2];
@@ -37,19 +35,16 @@ private:
 };
 
 class grid {
-	friend class falling_block;
-
 public:
 	void initialize(int base_x, int base_y);
 	void update(unsigned dpad_state);
 	void draw() const;
 
-private:
 	int get_block(int r, int c) const;
 	void set_block(int r, int c, int type);
-
 	bool is_empty(int r, int c) const;
 
+private:
 	void draw_blocks() const;
 	void draw_background() const;
 

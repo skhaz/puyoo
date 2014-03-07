@@ -147,6 +147,17 @@ falling_block::update(const grid *g, unsigned dpad_state)
 }
 
 void
+falling_block::copy_to_grid(grid *g)
+{
+	g->set_block(row_, col_, blocks_[0]);
+
+	g->set_block(
+		row_ + offsets[rotation_][0],
+		col_ + offsets[rotation_][1],
+		blocks_[1]);
+}
+
+void
 grid::initialize(int base_x, int base_y)
 {
 	base_x_ = base_x;
@@ -342,15 +353,7 @@ grid::update(unsigned dpad_state)
 	switch (state_) {
 		case STATE_PLAYER_CONTROL:
 			if (!falling_block_.update(this, dpad_state)) {
-				const falling_block *fb = &falling_block_;
-
-				set_block(fb->row_, fb->col_, fb->blocks_[0]);
-
-				set_block(
-					fb->row_ + offsets[fb->rotation_][0],
-					fb->col_ + offsets[fb->rotation_][1],
-					fb->blocks_[1]);
-
+				falling_block_.copy_to_grid(this);
 				on_drop();
 			}
 			break;
