@@ -1,4 +1,6 @@
+extern "C" {
 #include <psx.h>
+}
 
 #include "gfx.h"
 

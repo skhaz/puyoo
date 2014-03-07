@@ -1,23 +1,23 @@
 PSXSDK_ROOT = /opt/psxsdk
 
-CC = mipsel-unknown-elf-gcc
-LD = mipsel-unknown-elf-gcc
+CXX = mipsel-unknown-elf-g++
+LD = mipsel-unknown-elf-g++
 
 MKISOFS = genisoimage
 
 CD_IMAGE_ROOT = cdroot
 LICENSE_FILE  = $(PSXSDK_ROOT)/share/licenses/infoeur.dat
 
-CFLAGS = -fsigned-char -msoft-float -mno-gpopt -fno-builtin -G0 -I$(PSXSDK_ROOT)/include
-LDFLAGS = -T $(PSXSDK_ROOT)/mipsel-unknown-elf/lib/ldscripts/playstation.x
+CXXFLAGS = -fsigned-char -msoft-float -mno-gpopt -fno-builtin -fno-rtti -fno-exceptions -G0 -I$(PSXSDK_ROOT)/include -std=c++0x
+LDFLAGS = -nostdlib -lgcc -T $(PSXSDK_ROOT)/mipsel-unknown-elf/lib/ldscripts/playstation.x
 
 LIBS = 
 
 TARGET = demo
 
-CFILES = main-psx.c game.c grid.c gfx-psx.c
+CXXFILES = main-psx.cc game.cc grid.cc gfx-psx.cc
 
-OBJS = $(CFILES:.c=.o)
+OBJS = $(CXXFILES:.cc=.o)
 
 all: cdimage
 
@@ -35,8 +35,8 @@ cdimage: $(TARGET).exe
 	mkpsxiso $(TARGET).hsf $(TARGET).bin $(LICENSE_FILE)
 	rm -f $(TARGET).hsf
 
-.c.o:
-	$(CC) $(CFLAGS) -c $<
+.cc.o:
+	$(CXX) $(CXXFLAGS) -c $<
 
 clean:
 	rm -rf *o $(TARGET) $(TARGET).exe $(CD_IMAGE_ROOT) $(TARGET).bin $(TARGET).cue

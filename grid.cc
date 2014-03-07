@@ -1,6 +1,7 @@
-#include <stdio.h>
+extern "C" {
 #include <stdlib.h>
 #include <string.h>
+}
 
 #include "common.h"
 #include "gfx.h"
@@ -325,7 +326,6 @@ grid::find_chains()
 			int chain_size = find_chain_size(visited, r, c, type);
 
 			if (chain_size >= MIN_CHAIN_SIZE) {
-				printf("%d chain!\n", chain_size);
 				chain_explode(r, c, type);
 				found = true;
 			}

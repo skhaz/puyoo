@@ -1,16 +1,18 @@
-#include <stdio.h>
+extern "C" {
 #include <psx.h>
+}
 
+#include "game.h"
 #include "common.h"
 
 unsigned dpad_state;
 
-static volatile int vblank = 0;
+static volatile bool vblank = false;
 
 static void
-vblank_handler(void)
+vblank_handler()
 {
-	vblank = 1;
+	vblank = true;
 }
 
 static void
@@ -18,7 +20,7 @@ dpad_state_update(void)
 {
 	unsigned short pad;
 
-	PSX_ReadPad(&pad, NULL);
+	PSX_ReadPad(&pad, 0);
 
 	dpad_state = 0;
 	if (pad & PAD_UP) dpad_state |= DPAD_UP;
