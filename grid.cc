@@ -55,7 +55,7 @@ grid::set_block(int r, int c, int type)
 }
 
 void
-falling_block::initialize()
+grid::falling_block::initialize()
 {
 	blocks_[0] = rand()%(NUM_BLOCK_TYPES - 2) + 1;
 	blocks_[1] = rand()%(NUM_BLOCK_TYPES - 2) + 1;
@@ -69,7 +69,7 @@ falling_block::initialize()
 }
 
 void
-falling_block::draw(int base_x, int base_y) const
+grid::falling_block::draw(int base_x, int base_y) const
 {
 	block_draw(blocks_[0], base_x + col_*BLOCK_SIZE, base_y + (GRID_ROWS - 1)*BLOCK_SIZE - row_*BLOCK_SIZE);
 
@@ -79,7 +79,7 @@ falling_block::draw(int base_x, int base_y) const
 }
 
 bool
-falling_block::can_move(const grid *g, int dr, int dc) const
+grid::falling_block::can_move(const grid *g, int dr, int dc) const
 {
 	return
 		g->is_empty(row_ + dr, col_ + dc) &&
@@ -87,7 +87,7 @@ falling_block::can_move(const grid *g, int dr, int dc) const
 }
 
 bool
-falling_block::update(const grid *g, unsigned dpad_state)
+grid::falling_block::update(const grid *g, unsigned dpad_state)
 {
 	bool is_active = true;
 
@@ -147,7 +147,7 @@ falling_block::update(const grid *g, unsigned dpad_state)
 }
 
 void
-falling_block::copy_to_grid(grid *g)
+grid::falling_block::copy_to_grid(grid *g)
 {
 	g->set_block(row_, col_, blocks_[0]);
 
@@ -218,24 +218,6 @@ grid::draw_background() const
 	}
 }
 
-int
-grid::find_chain_size(int *visited, int r, int c, int type) const
-{
-	int rv = 0;
-
-	if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS && !visited[r*GRID_COLS + c] && get_block(r, c) == type) {
-		visited[r*GRID_COLS + c] = 1;
-
-		rv = 1 +
-		  find_chain_size(visited, r - 1, c, type) +
-		  find_chain_size(visited, r + 1, c, type) +
-		  find_chain_size(visited, r, c - 1, type) +
-		  find_chain_size(visited, r, c + 1, type);
-	}
-
-	return rv;
-}
-
 void
 grid::chain_explode(int r, int c, int type)
 {
@@ -257,10 +239,28 @@ grid::clear_exploding_blocks()
 			*p = BLOCK_EMPTY;
 }
 
+int
+grid::find_chain_size(bool *visited, int r, int c, int type) const
+{
+	int rv = 0;
+
+	if (r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS && !visited[r*GRID_COLS + c] && get_block(r, c) == type) {
+		visited[r*GRID_COLS + c] = true;
+
+		rv = 1 +
+		  find_chain_size(visited, r - 1, c, type) +
+		  find_chain_size(visited, r + 1, c, type) +
+		  find_chain_size(visited, r, c - 1, type) +
+		  find_chain_size(visited, r, c + 1, type);
+	}
+
+	return rv;
+}
+
 bool
 grid::find_chains()
 {
-	static int visited[GRID_ROWS*GRID_COLS];
+	static bool visited[GRID_ROWS*GRID_COLS];
 	memset(visited, 0, sizeof(visited));
 
 	bool found = false;
@@ -280,7 +280,7 @@ grid::find_chains()
 			if (chain_size >= MIN_CHAIN_SIZE) {
 				printf("%d chain!\n", chain_size);
 				chain_explode(r, c, type);
-				found = 1;
+				found = true;
 			}
 		}
 	}
