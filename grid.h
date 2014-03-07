@@ -36,7 +36,6 @@ private:
 	bool has_hanging_blocks() const;
 	void drop_hanging_blocks();
 	bool find_chains();
-	void on_drop();
 	int find_chain_size(bool *visited, int r, int c, int type) const;
 
 	enum state {

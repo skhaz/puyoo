@@ -380,21 +380,19 @@ grid::draw() const
 }
 
 void
-grid::on_drop()
-{
-	if (has_hanging_blocks()) {
-		set_state(STATE_DROPPING_BLOCKS);
-	} else if (find_chains()) {
-		set_state(STATE_EXPLODING_BLOCKS);
-	} else {
-		set_state(STATE_PLAYER_CONTROL);
-		falling_block_.initialize();
-	}
-}
-
-void
 grid::update(unsigned dpad_state)
 {
+	auto on_drop = [this]() {
+		if (has_hanging_blocks()) {
+			set_state(STATE_DROPPING_BLOCKS);
+		} else if (find_chains()) {
+			set_state(STATE_EXPLODING_BLOCKS);
+		} else {
+			set_state(STATE_PLAYER_CONTROL);
+			falling_block_.initialize();
+		}
+	};
+
 	switch (state_) {
 		case STATE_PLAYER_CONTROL:
 			if (!falling_block_.update(this, dpad_state)) {

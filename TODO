@@ -2,6 +2,9 @@ v fix dropping
 v state for marking 
 * clean chain detection (explicit stack?)
 v rotation animation
+* move falling block to right/left when rotating on left/right corners
 * hiccups when dropping blocks
 * jama blocks
 * enemy AI
+* sprite/texture abstraction
+* text render

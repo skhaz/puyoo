@@ -3,7 +3,7 @@ LD = g++
 
 OBJS = $(CXXFILES:.cc=.o)
 
-CXXFLAGS = `pkg-config --cflags sdl gl glu` -Wall -g -O2
+CXXFLAGS = `pkg-config --cflags sdl gl glu` -Wall -g -O2 -std=c++0x
 LIBS = `pkg-config --libs sdl gl glu`
 
 CXXFILES = main-sdl.cc game.cc grid.cc gfx-sdl.cc
