@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,7 @@ enum {
 	FALLING_BLOCK_UPDATE_INTERVAL = 3,
 	FALLING_BLOCK_DROP_INTERVAL = 30,
 	FALLING_BLOCK_NUM_ROTATIONS = 4,
+	FALLING_BLOCK_ROTATION_TICS = 10,
 };
 
 static void
@@ -66,16 +68,41 @@ grid::falling_block::initialize()
 
 	input_poll_tics_ = 0;
 	drop_tics_ = FALLING_BLOCK_DROP_INTERVAL;
+
+	set_state(STATE_PLAYER_CONTROL);
 }
 
 void
 grid::falling_block::draw(int base_x, int base_y) const
 {
+	// first block
 	block_draw(blocks_[0], base_x + col_*BLOCK_SIZE, base_y + (GRID_ROWS - 1)*BLOCK_SIZE - row_*BLOCK_SIZE);
 
-	block_draw(blocks_[1],
-		base_x + (col_ + offsets[rotation_][1])*BLOCK_SIZE,
-		base_y + (GRID_ROWS - 1)*BLOCK_SIZE - (row_ + offsets[rotation_][0])*BLOCK_SIZE);
+	// second block
+
+	int x, y;
+
+	if (state_ != STATE_ROTATING) {
+		x = base_x + (col_ + offsets[rotation_][1])*BLOCK_SIZE;
+		y = base_y + (GRID_ROWS - 1)*BLOCK_SIZE - (row_ + offsets[rotation_][0])*BLOCK_SIZE;
+	} else {
+		static const struct offset {
+			int dx, dy;
+		} rotation_offsets[4][FALLING_BLOCK_ROTATION_TICS] = {
+			{ { 16, 0 }, { 15, 2 }, { 15, 4 }, { 14, 7 }, { 12, 9 }, { 11, 11 }, { 9, 12 }, { 7, 14 }, { 4, 15 }, { 2, 15 }, },
+			{ { 0, 16 }, { -2, 15 }, { -4, 15 }, { -7, 14 }, { -9, 12 }, { -11, 11 }, { -12, 9 }, { -14, 7 }, { -15, 4 }, { -15, 2 }, },
+			{ { -16, 0 }, { -15, -2 }, { -15, -4 }, { -14, -7 }, { -12, -9 }, { -11, -11 }, { -9, -12 }, { -7, -14 }, { -4, -15 }, { -2, -15 }, },
+			{ { 0, -16 }, { 2, -15 }, { 4, -15 }, { 7, -14 }, { 9, -12 }, { 11, -11 }, { 12, -9 }, { 14, -7 }, { 15, -4 }, { 15, -2 }, },
+		};
+
+		int xo = base_x + col_*BLOCK_SIZE;
+		int yo = base_y + (GRID_ROWS - 1)*BLOCK_SIZE - row_*BLOCK_SIZE;
+
+		x = xo + rotation_offsets[rotation_][state_tics_].dx;
+		y = yo + rotation_offsets[rotation_][state_tics_].dy;
+	}
+
+	block_draw(blocks_[1], x, y);
 }
 
 bool
@@ -89,72 +116,94 @@ grid::falling_block::can_move(const grid *g, int dr, int dc) const
 bool
 grid::falling_block::update(const grid *g, unsigned dpad_state)
 {
-	bool is_active = true;
+	if (state_ == STATE_PLAYER_CONTROL) {
+		bool is_active = true;
 
-	if (input_poll_tics_ > 0) {
-		--input_poll_tics_;
-	} else {
-		if (dpad_state & DPAD_LEFT) {
-			if (can_move(g, 0, -1)) {
-				--col_;
-				input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
-			}
-		}
-
-		if (dpad_state & DPAD_RIGHT) {
-			if (can_move(g, 0, 1)) {
-				++col_;
-				input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
-			}
-		}
-
-		if (dpad_state & DPAD_DOWN) {
-			if (can_move(g, -1, 0)) {
-				--row_;
-				input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
-			} else {
-				is_active = false;
-			}
-		}
-
-		if (dpad_state & DPAD_BUTTON) {
-			int next_rotation = rotation_ + 1;
-			if (next_rotation == FALLING_BLOCK_NUM_ROTATIONS)
-				next_rotation = 0;
-
-			if (g->is_empty(row_ + offsets[next_rotation][0], col_ + offsets[next_rotation][1])) {
-				rotation_ = next_rotation;
-				input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
-			}
-		}
-	}
-
-	if (is_active) {
-		if (drop_tics_ > 0) {
-			--drop_tics_;
+		if (input_poll_tics_ > 0) {
+			--input_poll_tics_;
 		} else {
-			if (can_move(g, -1, 0)) {
-				--row_;
-				drop_tics_ = FALLING_BLOCK_DROP_INTERVAL;
-			} else {
-				/* can't drop */
-				is_active = false;
+			if (dpad_state & DPAD_LEFT) {
+				if (can_move(g, 0, -1)) {
+					--col_;
+					input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
+				}
+			}
+
+			if (dpad_state & DPAD_RIGHT) {
+				if (can_move(g, 0, 1)) {
+					++col_;
+					input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
+				}
+			}
+
+			if (dpad_state & DPAD_DOWN) {
+				if (can_move(g, -1, 0)) {
+					--row_;
+					input_poll_tics_ = FALLING_BLOCK_UPDATE_INTERVAL;
+				} else {
+					is_active = false;
+				}
+			}
+
+			if (dpad_state & DPAD_BUTTON) {
+				int next_rotation = rotation_ + 1;
+				if (next_rotation == FALLING_BLOCK_NUM_ROTATIONS)
+					next_rotation = 0;
+
+				if (g->is_empty(row_ + offsets[next_rotation][0], col_ + offsets[next_rotation][1]))
+					set_state(STATE_ROTATING);
 			}
 		}
+
+		if (is_active && state_ == STATE_PLAYER_CONTROL) {
+			if (drop_tics_ > 0) {
+				--drop_tics_;
+			} else {
+				if (can_move(g, -1, 0)) {
+					--row_;
+					drop_tics_ = FALLING_BLOCK_DROP_INTERVAL;
+				} else {
+					/* can't drop */
+					is_active = false;
+				}
+			}
+		}
+
+		return is_active;
+	} else if (state_ == STATE_ROTATING) {
+		if (++state_tics_ == FALLING_BLOCK_ROTATION_TICS) {
+			if (++rotation_ == FALLING_BLOCK_NUM_ROTATIONS)
+				rotation_ = 0;
+
+			set_state(STATE_PLAYER_CONTROL);
+		}
+
+		return true;
 	}
 
-	return is_active;
+	// NOTREACHED (?)
+	return false;
+}
+
+void
+grid::falling_block::set_state(state next_state)
+{
+	state_ = next_state;
+	state_tics_ = 0;
 }
 
 void
 grid::falling_block::copy_to_grid(grid *g)
 {
 	g->set_block(row_, col_, blocks_[0]);
+	g->set_block(row_ + offsets[rotation_][0], col_ + offsets[rotation_][1], blocks_[1]);
+}
 
-	g->set_block(
-		row_ + offsets[rotation_][0],
-		col_ + offsets[rotation_][1],
-		blocks_[1]);
+void
+grid::set_state(state next_state)
+{
+	state_ = next_state;
+	state_tics_ = 0;
 }
 
 void
@@ -165,8 +214,7 @@ grid::initialize(int base_x, int base_y)
 
 	memset(blocks_, 0, sizeof(blocks_));
 
-	state_ = STATE_PLAYER_CONTROL;
-
+	set_state(STATE_PLAYER_CONTROL);
 	falling_block_.initialize();
 }
 
@@ -336,13 +384,11 @@ void
 grid::on_drop()
 {
 	if (has_hanging_blocks()) {
-		state_ = STATE_DROPPING_BLOCKS;
-		state_tics_ = 0;
+		set_state(STATE_DROPPING_BLOCKS);
 	} else if (find_chains()) {
-		state_ = STATE_EXPLODING_BLOCKS;
-		state_tics_ = 0;
+		set_state(STATE_EXPLODING_BLOCKS);
 	} else {
-		state_ = STATE_PLAYER_CONTROL;
+		set_state(STATE_PLAYER_CONTROL);
 		falling_block_.initialize();
 	}
 }

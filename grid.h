@@ -39,6 +39,14 @@ private:
 	void on_drop();
 	int find_chain_size(bool *visited, int r, int c, int type) const;
 
+	enum state {
+		STATE_PLAYER_CONTROL,
+		STATE_EXPLODING_BLOCKS,
+		STATE_DROPPING_BLOCKS,
+	};
+
+	void set_state(state next_state);
+
 	class falling_block {
 	public:
 		void initialize();
@@ -49,22 +57,25 @@ private:
 		void copy_to_grid(grid *g);
 	
 	private:
+		enum state {
+			STATE_PLAYER_CONTROL,
+			STATE_ROTATING,
+		};
+
+		void set_state(state next_state);
+
 		int blocks_[2];
 		int row_, col_, rotation_;
 		int input_poll_tics_;
 		int drop_tics_;
+		state state_;
+		int state_tics_;
 	};
 
 	falling_block falling_block_;
 
 	unsigned char blocks_[GRID_ROWS*GRID_COLS];
 	int base_x_, base_y_;
-
-	enum state {
-		STATE_PLAYER_CONTROL,
-		STATE_EXPLODING_BLOCKS,
-		STATE_DROPPING_BLOCKS,
-	};
 	state state_;
 	int state_tics_;
 };
