@@ -16,7 +16,8 @@ enum block_type {
 	NUM_BLOCK_TYPES,
 };
 
-class grid {
+class grid
+{
 public:
 	void initialize(int base_x, int base_y);
 	void update(unsigned dpad_state);
@@ -46,7 +47,8 @@ private:
 
 	void set_state(state next_state);
 
-	class falling_block {
+	class falling_block
+	{
 	public:
 		void initialize();
 	
