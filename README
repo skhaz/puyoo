@@ -1,0 +1,7 @@
+Building for Linux/SDL:
+
+  $ make
+
+Building a CD image for Playstation:
+
+  $ make cdimage PLATFORM=psx PSXSDK_ROOT=/opt/psxsdk
