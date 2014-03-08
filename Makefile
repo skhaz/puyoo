@@ -1,9 +1,9 @@
 ifeq ($(PLATFORM),psx)
-BIN_PREFIX=mipsel-unknown-elf-
+CROSS=mipsel-unknown-elf-
 endif
 
-CXX = $(BIN_PREFIX)g++
-LD = $(BIN_PREFIX)g++
+CXX = $(CROSS)g++
+LD = $(CROSS)g++
 
 CXXFLAGS = -Wall -g -O2 -std=c++0x
 LIBS =
@@ -75,7 +75,7 @@ depend: .depend
 clean:
 	rm -f *o $(TARGET)
 ifeq ($(PLATFORM),psx)
-	rm -rf $(CD_IMAGE_ROOT) $(TARGET).hsf $(TARGET).bin $(TARGET).cue $(TARGET).exe
+	rm -rf $(CD_IMAGE_ROOT) $(foreach EXT,hsf bin cue exe,$(TARGET).$(EXT))
 endif
 
 include .depend
