@@ -4,7 +4,7 @@ use constant {
 	PI => 3.14159265
 };
 
-my $rotation_tics = 10;
+my $rotation_tics = 8;
 my $block_size = 16;
 
 print <<EOF;
